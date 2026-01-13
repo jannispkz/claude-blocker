@@ -30,3 +30,8 @@ coverage/
 
 # Misc
 *.local
+
+# Extension packaging
+*.crx
+*.zip
+*.pem
