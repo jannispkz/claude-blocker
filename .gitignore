@@ -35,3 +35,6 @@ coverage/
 *.crx
 *.zip
 *.pem
+
+# Claude Code local settings
+.claude/settings.local.json
