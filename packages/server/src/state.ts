@@ -35,12 +35,16 @@ class SessionState {
     const waitingForInput = sessions.filter(
       (s) => s.status === "waiting_for_input"
     ).length;
+    const permissionPending = sessions.filter(
+      (s) => s.status === "permission_pending"
+    ).length;
     return {
       type: "state",
       blocked: working === 0,
       sessions: sessions.length,
       working,
       waitingForInput,
+      permissionPending,
     };
   }
 
@@ -85,6 +89,10 @@ class SessionState {
             toolSession.status = "working";
             toolSession.waitingForInputSince = undefined;
           }
+        } else if (toolSession.status === "permission_pending") {
+          // Permission was granted, now working
+          toolSession.status = "working";
+          toolSession.waitingForInputSince = undefined;
         } else {
           toolSession.status = "working";
         }
@@ -94,8 +102,8 @@ class SessionState {
       case "Stop":
         this.ensureSession(session_id, payload.cwd);
         const idleSession = this.sessions.get(session_id)!;
-        if (idleSession.status === "waiting_for_input") {
-          // If waiting for input, only reset after 500ms (to ignore immediate Stop after AskUserQuestion)
+        if (idleSession.status === "waiting_for_input" || idleSession.status === "permission_pending") {
+          // If waiting for input/permission, only reset after 500ms (to ignore immediate Stop)
           const elapsed = Date.now() - (idleSession.waitingForInputSince?.getTime() ?? 0);
           if (elapsed > 500) {
             idleSession.status = "idle";
@@ -105,6 +113,17 @@ class SessionState {
           idleSession.status = "idle";
         }
         idleSession.lastActivity = new Date();
+        break;
+
+      case "Notification":
+        this.ensureSession(session_id, payload.cwd);
+        const notifSession = this.sessions.get(session_id)!;
+        // Block for permission_prompt notifications (waiting for user to approve)
+        if (payload.notification_type === "permission_prompt") {
+          notifSession.status = "permission_pending";
+          notifSession.waitingForInputSince = new Date();
+        }
+        notifSession.lastActivity = new Date();
         break;
     }
 

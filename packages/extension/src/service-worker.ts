@@ -11,6 +11,7 @@ interface State {
   sessions: number;
   working: number;
   waitingForInput: number;
+  permissionPending: number;
   bypassUntil: number | null;
 }
 
@@ -19,6 +20,7 @@ const state: State = {
   sessions: 0,
   working: 0,
   waitingForInput: 0,
+  permissionPending: 0,
   bypassUntil: null,
 };
 
@@ -38,14 +40,16 @@ chrome.storage.sync.get(["bypassUntil"], (result) => {
 function getPublicState() {
   const bypassActive = state.bypassUntil !== null && state.bypassUntil > Date.now();
   // Don't block if waiting for input - only block when truly idle
+  // But DO block if permission is pending (quick yes/no decision)
   const isIdle = state.working === 0 && state.waitingForInput === 0;
-  const shouldBlock = !bypassActive && (isIdle || !state.serverConnected);
+  const shouldBlock = !bypassActive && (isIdle || state.permissionPending > 0 || !state.serverConnected);
 
   return {
     serverConnected: state.serverConnected,
     sessions: state.sessions,
     working: state.working,
     waitingForInput: state.waitingForInput,
+    permissionPending: state.permissionPending,
     blocked: shouldBlock,
     bypassActive,
     bypassUntil: state.bypassUntil,
@@ -87,6 +91,7 @@ function connect() {
           state.sessions = msg.sessions;
           state.working = msg.working;
           state.waitingForInput = msg.waitingForInput ?? 0;
+          state.permissionPending = msg.permissionPending ?? 0;
           broadcast();
         }
       } catch {}

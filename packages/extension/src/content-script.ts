@@ -10,6 +10,7 @@ interface PublicState {
   sessions: number;
   working: number;
   waitingForInput: number;
+  permissionPending: number;
   blocked: boolean;
   bypassActive: boolean;
 }
@@ -172,10 +173,11 @@ function setupMutationObserver(): void {
   });
 }
 
-function setDotColor(dot: HTMLElement, color: "green" | "red" | "gray"): void {
+function setDotColor(dot: HTMLElement, color: "green" | "red" | "gray" | "yellow"): void {
   const colors = {
     green: "background:#22c55e;box-shadow:0 0 8px #22c55e;",
     red: "background:#ef4444;box-shadow:0 0 8px #ef4444;",
+    yellow: "background:#eab308;box-shadow:0 0 8px #eab308;",
     gray: "background:#666;box-shadow:none;",
   };
   dot.style.cssText = `width:8px;height:8px;border-radius:50%;flex-shrink:0;${colors[color]}`;
@@ -201,6 +203,11 @@ function renderState(state: PublicState): void {
     setDotColor(dot, "green");
     status.textContent = "Waiting for Claude Code";
     hint.textContent = "Open a terminal and start Claude Code";
+  } else if (state.permissionPending > 0) {
+    message.textContent = "Claude needs your permission to continue.";
+    setDotColor(dot, "yellow");
+    status.textContent = "Waiting for Permission";
+    hint.textContent = "Approve or deny the permission request in Claude Code";
   } else {
     message.textContent = "Your job finished!";
     setDotColor(dot, "green");

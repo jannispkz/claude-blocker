@@ -6,17 +6,19 @@ export interface HookPayload {
     | "PreToolUse"
     | "Stop"
     | "SessionStart"
-    | "SessionEnd";
+    | "SessionEnd"
+    | "Notification";
   tool_name?: string;
   tool_input?: Record<string, unknown>;
   cwd?: string;
   transcript_path?: string;
+  notification_type?: string;
 }
 
 // Session state tracked by server
 export interface Session {
   id: string;
-  status: "idle" | "working" | "waiting_for_input";
+  status: "idle" | "working" | "waiting_for_input" | "permission_pending";
   lastActivity: Date;
   waitingForInputSince?: Date;
   cwd?: string;
@@ -30,6 +32,7 @@ export type ServerMessage =
       sessions: number;
       working: number;
       waitingForInput: number;
+      permissionPending: number;
     }
   | { type: "pong" };
 
